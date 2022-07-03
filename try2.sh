@@ -1,0 +1,1 @@
+curl --request POST   --header 'content-type: application/json'   --url http://localhost:4000/graphiql   --data '{"query":"query{books {author title}}"}'

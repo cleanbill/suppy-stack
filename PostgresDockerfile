@@ -1,0 +1,6 @@
+FROM postgres
+RUN echo 'postgres build'
+ENV POSTGRES_USER justfortests
+ENV POSTGRES_PASSWORD rubbish
+ENV POSTGRES_DB suppy
+ADD init.sql /docker-entrypoint-initdb.d/
