@@ -20,12 +20,12 @@ const query = JSON.stringify({ "query": "query{books {id author title}}" });
 //   return { props: { books } }
 // }
 
-const updateKeyPress = (book:Book, e: any, author = false) => {
+const updateKeyPress = (book: Book, e: any, author = false) => {
   if (e.key != 'Enter') {
     return;
   }
   const valueEntered: string = e.target.value;
-  if (author){
+  if (author) {
     book.author = valueEntered;
   } else {
     book.title = valueEntered;
@@ -33,8 +33,9 @@ const updateKeyPress = (book:Book, e: any, author = false) => {
   fetchUpdate(book);
 }
 
-const fetchInsert = async (book:Book) =>{
-  const body = JSON.stringify({"query":"mutation {createBook(author:\""+book.author+"\",title:\""+book.title+"\"){ author,title}}"});
+const fetchInsert = async (book: Book) => {
+  console.log('insert book ', book);
+  const body = JSON.stringify({ "query": "mutation {createBook(author:\"" + book.author + "\",title:\"" + book.title + "\"){ author,title}}" });
   const rawResponse = await fetch('http://localhost:4000/graphiql', {
     method: 'POST',
     headers: {
@@ -48,10 +49,10 @@ const fetchInsert = async (book:Book) =>{
   return content;
 }
 
-const fetchUpdate = async (book:Book) =>{
-  console.log('update book to ',book);
-  const query = {"query":"mutation {updateBook(id:"+book.id+",author:\""+book.author+"\",title:\""+book.title+"\"){ author,title}}"};
-  console.log('query is ',query);
+const fetchUpdate = async (book: Book) => {
+  console.log('update book to ', book);
+  const query = { "query": "mutation {updateBook(id:" + book.id + ",author:\"" + book.author + "\",title:\"" + book.title + "\"){ id, author,title}}" };
+  console.log('query is ', query);
   const body = JSON.stringify(query);
   const rawResponse = await fetch('http://localhost:4000/graphiql', {
     method: 'POST',
@@ -67,10 +68,10 @@ const fetchUpdate = async (book:Book) =>{
 
 }
 
-const fetchDelete = async (book:Book) =>{
-  console.log('update book to ',book);
-  const query = {"query":"mutation {deleteBook(id:"+book.id+"){ author,title}}"};
-  console.log('query is ',query);
+const fetchDelete = async (book: Book) => {
+  console.log('delete book to ', book);
+  const query = { "query": "mutation {deleteBook(id:" + book.id + ",author:\"" + book.author + "\",title:\"" + book.title + "\"){ id,author,title}}" };
+  console.log('query is ', query);
   const body = JSON.stringify(query);
   const rawResponse = await fetch('http://localhost:4000/graphiql', {
     method: 'POST',
@@ -93,7 +94,7 @@ const insertKeyPress = (index: number, e: any) => {
   const author = newAuthEl.value;
   const newTitleEl = document.getElementById('newTitle') as HTMLInputElement;
   const title = newTitleEl.value;
-  const newBook:Book = {title,author}
+  const newBook: Book = { title, author }
   console.log(newBook);
   fetchInsert(newBook);
   newAuthEl.value = '';
@@ -117,7 +118,7 @@ const Home: NextPage = (props: any) => {
       </Head>
 
       <h1 className={styles.title}>
-        Books, books, books. 
+        Books, books, books.
       </h1>
       <main >
         <div className="grid grid gap-1 grid-cols-2 py-6">
@@ -127,7 +128,7 @@ const Home: NextPage = (props: any) => {
         {data?.books?.map(
           (book: Book, index: number) =>
             <>
-              <div key={index + ''+book.id} className="grid grid gap-1 grid-cols-2">
+              <div key={index + '' + book.id} className="grid grid gap-1 grid-cols-3">
                 <input
                   id={'title' + book.id}
                   className='w-5/6 max-w-100 p-1 rounded border-1'
@@ -142,6 +143,7 @@ const Home: NextPage = (props: any) => {
                   placeholder={'Author #' + (book.id)}
                   defaultValue={book.author}
                 ></input>
+                <button onClick={e => fetchDelete(book)}>X</button>
               </div>
             </>
         )}

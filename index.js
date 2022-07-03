@@ -55,6 +55,17 @@ const updateBook = async (client, book) => {
     }
 };
 
+const deleteBook = async (client, book) => {
+    const sql = 'DELETE FROM books where id = '+book.id+' returning id, author, title';
+    log(sql);
+    try {
+        const result = await client.query(sql);
+        const oldBook = result.rows[0];
+        return oldBook;
+    } catch (er) {
+        error(er);
+    }
+};
 
 const delay = (n) => {
     return new Promise(function (resolve) {
@@ -114,6 +125,11 @@ dbSetup().then(client => {
   type Mutation {
     updateBook(id: Int!,author: String!, title: String!): Book!
   }  
+
+  type Mutation {
+    deleteBook(id: Int!,author: String!, title: String!): Book!
+  }
+
 `;
 
     const resolvers = {
@@ -137,6 +153,13 @@ dbSetup().then(client => {
                 log('updating book');
                 log(book);
                 const bookUpdate = await updateBook(client, book);
+                log(bookUpdate);
+                return bookUpdate;
+            },
+            deleteBook: async (_, book) => {
+                log('deleteing book');
+                log(book);
+                const bookUpdate = await deleteBook(client, book);
                 log(bookUpdate);
                 return bookUpdate;
             }
