@@ -5,17 +5,14 @@ import Image from 'next/image'
 import styles from '../styles/Home.module.css'
 import { Book } from './api/books';
 
-import { request } from 'graphql-request'
-import useSWR from 'swr'
+import { request, RequestDocument } from 'graphql-request'
+import useSWR, { mutate } from 'swr'
+import { useState } from 'react';
+import { time } from 'console';
+import { title } from 'process';
 
-const fetcher = (query: any) => {
-  try {
-    console.log('request',request);
-    return request('http://localhost:4000/graphiql', query)
-  } catch (err){
-    console.error(err);
-  }
-}
+const fetcher = (query: any) => request('http://localhost:4000/graphiql', query)
+
 // export async function getServerSideProps() {
 //   // Fetch data from external API
 //   const res = await fetch('http://localhost:3000/api/books');
@@ -25,7 +22,7 @@ const fetcher = (query: any) => {
 //   return { props: { books } }
 // }
 
-const updateKeyPress = (book: Book, e: any, author = false) => {
+const updateKeyPress = (book: Book, e: any, mutate:Function, author = false) => {
   if (e.key != 'Enter') {
     return;
   }
@@ -35,7 +32,7 @@ const updateKeyPress = (book: Book, e: any, author = false) => {
   } else {
     book.title = valueEntered;
   }
-  fetchUpdate(book);
+  swrAction(mutate,UPDATE_BOOK,book);
 }
 
 const fetchInsert = async (book: Book) => {
@@ -91,8 +88,62 @@ const fetchDelete = async (book: Book) => {
   return content;
 }
 
+const insertKeyPress = (e: any, mutate:Function) => {
+  if (e.key != 'Enter') {
+    return;
+  }
+  const newBook: Book = newBookFromInput();
+  swrAction(mutate,SET_BOOK,newBook);
+}
+
+const newBookFromInput = ():Book =>{
+  const newAuthEl = document.getElementById('newAuthor') as HTMLInputElement;
+  const author = newAuthEl.value;
+  const newTitleEl = document.getElementById('newTitle') as HTMLInputElement;
+  const title = newTitleEl.value;
+  const newBook: Book = { title, author }
+  console.log(newBook);
+  newAuthEl.value = '';
+  newTitleEl.value = '';
+  newTitleEl.focus();
+  return newBook;
+}
+
+const insertSWR = (mutate:any, books: Array<Book>) =>{
+  const newBook: Book = newBookFromInput();
+  swrInsertMutate(mutate,null, newBook, books);
+}
 
 const GET_BOOKS = 'query{books {id author title}}';
+const SET_BOOK =  `
+mutation createBook($title: String!, $author: String!) {
+  createBook(title:$title, author: $author) {
+    id
+    title
+    author
+  }
+}
+`;
+const RM_BOOK =  `
+mutation deleteBook($id: Int!, $title: String!, $author: String!) {
+  deleteBook(id:$id, title:$title, author: $author) {
+    id
+    title
+    author
+  }
+}
+`;
+const UPDATE_BOOK =  `
+mutation updateBook($id: Int!, $title: String!, $author: String!) {
+  updateBook(id:$id, title:$title, author: $author) {
+    id
+    title
+    author
+  }
+}
+`;
+
+
 
 const swrUpdate = async  (mutate:any, trigger: any, book:Book, books: Array<Book>) => {
   const updatedBooks = books.map(oldBook => {
@@ -112,42 +163,46 @@ const swrUpdate = async  (mutate:any, trigger: any, book:Book, books: Array<Book
 //  trigger(mutation);
 }
 
+const swrInsertMutate = async  (mutate:any, trigger:any, book:Book, books: Array<Book>) => {
+  mutate(GET_BOOKS, {books: [...books, book]}, false)
+  // send text to the API
+  const mutation = {
+    'query': 'mutation books($id: Int, $title: String!, $author: String!) { insertBook(objects: [{id: $id, title:$title, name: $name}]) { affected_rows } }',
+    'variables': { id: book.id, title: book.title, author: book.author}
+  };
+  //await fetcher(mutation);
+  // revalidate
+  //trigger(mutation);
+}
+
+const swrInsert =async (mutate: Function) =>{
+  const book = newBookFromInput();
+  swrAction(mutate,SET_BOOK,book);
+}
+
+const swrAction = async (mutate: Function, action: RequestDocument, book:Book) => {
+  const rest = await request('http://localhost:4000/graphiql', action, {id:book.id, title:book.title, author:book.author});
+  mutate();
+};
+
+
 const Home: NextPage = (props: any) => {
+  const emptyBook = {id:-1,author:'empty',title:'empty'} as any;
+  const [deleteBook, setDeleteBook] = useState(emptyBook);
+  const triggerDelete = (book:Book) =>{
+    setDeleteBook(book);
+    //book.id = -1;
+    //setDeleteBook(book);
+  }
+    const { data: deleted } = useSWR(
+    deleteBook.id > 0 ? `"mutation {deleteBook(<id:${deleteBook.id},author:\"${deleteBook.author}\",title:\"${deleteBook.title}\"){ id,author,title}}"` : null,
+    fetcher
+  );
   const { data, error, mutate } = useSWR(
     GET_BOOKS,
     fetcher
   );
   console.log('fetched ', data);
-
-  const insertKeyPress = (e: any) => {
-    if (e.key != 'Enter') {
-      return;
-    }
-    const newAuthEl = document.getElementById('newAuthor') as HTMLInputElement;
-    const author = newAuthEl.value;
-    const newTitleEl = document.getElementById('newTitle') as HTMLInputElement;
-    const title = newTitleEl.value;
-    const newBook: Book = { title, author }
-    console.log(newBook);
-    //fetchInsert(newBook);
-    swrInsert(newBook);
-    newAuthEl.value = '';
-    newTitleEl.value = '';
-    newTitleEl.focus();
-  }
-
-  const swrInsert = async  (book:Book) => {
-    mutate({users: [...data.books, book]}, false)
-    // send text to the API
-    const mutation = {
-      'query': 'mutation books($title: String!, $author: String!) { insertBook(objects: [{title:$title, name: $name}]) { affected_rows } }',
-      'variables': { title: book.title, author: book.author}
-    };
-    await fetcher(mutation);
-    // revalidate
-    //trigger(mutation);
-  }
-  
 
   return (
     <div className={styles.container}>
@@ -158,7 +213,7 @@ const Home: NextPage = (props: any) => {
       </Head>
 
       <h1 className={styles.title}>
-        Books, books, books.
+        Books, books and books.
       </h1>
       <main >
         <div className="grid grid gap-1 grid-cols-3 py-6">
@@ -173,18 +228,18 @@ const Home: NextPage = (props: any) => {
                 <input
                   id={'title' + book.id}
                   className='w-5/6 max-w-100 p-1 rounded border-1'
-                  onKeyPress={(e) => updateKeyPress(book, e)}
+                  onKeyPress={(e) => updateKeyPress(book, e, mutate)}
                   placeholder={'Title #' + (book.id)}
                   defaultValue={book.title}
                 ></input>
                 <input
                   id={'author' + book.id}
                   className='w-5/6 max-w-100 p-1 rounded border-1'
-                  onKeyPress={(e) => updateKeyPress(book, e, true)}
+                  onKeyPress={(e) => updateKeyPress(book, e, mutate, true)}
                   placeholder={'Author #' + (book.id)}
                   defaultValue={book.author}
                 ></input>
-                <button className='mr-auto' onClick={e => fetchDelete(book)}>X</button>
+                <button className='mr-auto' onClick={e => swrAction(mutate,RM_BOOK,book)}>X</button>
               </div>
             </>
         )}
@@ -192,13 +247,13 @@ const Home: NextPage = (props: any) => {
           <input
             id={'newTitle'}
             className='w-5/6 max-w-100 p-1 rounded border-1'
-            onKeyPress={(e) => insertKeyPress(e)}
+            onKeyPress={(e) => insertKeyPress(e, mutate)}
             placeholder={'New Title'}
           ></input>
           <input
             id='newAuthor'
             className='w-5/6 max-w-100 p-1 rounded border-1'
-            onKeyPress={(e) => insertKeyPress(e)}
+            onKeyPress={(e) => insertKeyPress(e, mutate)}
             placeholder='New Author '
           ></input>
         </div>
