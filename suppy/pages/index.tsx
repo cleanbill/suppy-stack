@@ -10,9 +10,6 @@ import useSWR from 'swr'
 
 // This very much helped by https://thewebdevcoach.com/i-migrated-away-from-apollo-client-to-vercel-swr-and-prisma-graphql-request...and-you-can-too!
 
-
-const fetcher = (query: any) => request('http://localhost:4000/graphiql', query)
-
 const GET_BOOKS = 'query{books {id author title}}';
 const SET_BOOK = `
 mutation createBook($title: String!, $author: String!) {
@@ -42,6 +39,11 @@ mutation updateBook($id: Int!, $title: String!, $author: String!) {
 }
 `;
 
+const GRAPHQL_ENDPOINT = 'http://localhost:4000/graphiql'
+
+const fetcher = (query: any) => request(GRAPHQL_ENDPOINT, query)
+
+// No need to do it on the backend...
 // export async function getServerSideProps() {
 //   // Fetch data from external API
 //   const res = await fetch('http://localhost:3000/api/books');
@@ -86,7 +88,7 @@ const newBookFromInput = (): Book => {
 }
 
 const swrAction = async (mutate: Function, action: RequestDocument, book: Book) => {
-  const rest = await request('http://localhost:4000/graphiql', action, { id: book.id, title: book.title, author: book.author });
+  const rest = await request(GRAPHQL_ENDPOINT, action, { id: book.id, title: book.title, author: book.author });
   mutate();
 };
 
