@@ -63,3 +63,5 @@ And just navigate to the URL (eg http://localhost:3001) and you should be good t
 
 ![image](https://user-images.githubusercontent.com/1777480/181588611-ad3e0cfa-38d6-4d9a-84ba-fbecb0781b94.png)
 
+In the suppy directory there is a simple next.js app, that can be altered and played with. It does a bunch of SWR requests to get books from postgres via the apollo server running in the docker stack. All described in the ```suppy/pages/index.tsx``` file. The docker logs should help outline when things are updated / requested etc to help work out the best approach to use SWR.
+
