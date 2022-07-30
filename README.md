@@ -1,5 +1,5 @@
 # suppy-stack
-A untidy playground for playing with swr, next, apollo server in a docker-compose stack
+A untidy playground for playing with [SWR](https://swr.vercel.app/), next, apollo server in a docker-compose stack
 
 **Start the stack up**
 
