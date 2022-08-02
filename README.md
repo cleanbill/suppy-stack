@@ -21,7 +21,7 @@ ERROR: for db  Cannot start service db: cgroups: cgroup mountpoint does not exis
 ERROR: Encountered errors while bringing up the project.
 ```
 
-then run ```> ./stack.sh``` again.
+run ```> ./fixDocker.sh``` then run ```> ./stack.sh``` again.
 
 you should see...
 
